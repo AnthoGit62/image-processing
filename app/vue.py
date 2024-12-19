@@ -30,25 +30,26 @@ class vue(QMainWindow) :
         layout_centre = QVBoxLayout()
         layout_droite = QVBoxLayout()
         layout_main = QHBoxLayout()
+
         layout_main.addLayout(layout_gauche)
         layout_main.addLayout(layout_centre)
         layout_main.addLayout(layout_droite)
+
         layout_gauche.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout_droite.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout_centre.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        
 
         # Label de titre
 
         self.titreFits = QLabel("Recherche de fichier FITS")
         self.titreFits.setStyleSheet("font-size: 18px;")
         layout_gauche.addWidget(self.titreFits)
+
         self.titreCouleur = QLabel("Changement de filtre de couleur")
         self.titreCouleur.setStyleSheet("font-size: 18px;")
         layout_droite.addWidget(self.titreCouleur)
         
-        # Affichage des champs de téléchargement
+        # Affichage des champs pour le téléchargement
         
         self.labelRA = QLabel("Coordonnées : RA ")
         self.textRA = QLineEdit()
@@ -70,10 +71,13 @@ class vue(QMainWindow) :
         
         layout_gauche.addWidget(self.labelRA)
         layout_gauche.addWidget(self.textRA)
+
         layout_gauche.addWidget(self.labelDEC)
         layout_gauche.addWidget(self.textDEC)
+
         layout_gauche.addWidget(self.labelRAD)
         layout_gauche.addWidget(self.textRAD)
+
         layout_gauche.addWidget(self.labelSAT)
         layout_gauche.addWidget(self.textSAT)
 
@@ -101,7 +105,6 @@ class vue(QMainWindow) :
 
         self.slider_vert.valueChanged.connect(self.update_vert)
 
-
         self.lbl_slide_bleu = QLabel("Bleu")
         self.slider_bleu = QSlider(Qt.Orientation.Horizontal, self)
         self.slider_bleu.setMinimum(0)
@@ -111,7 +114,7 @@ class vue(QMainWindow) :
         layout_droite.addWidget(self.lbl_slide_bleu)
         layout_droite.addWidget(self.slider_bleu)
 
-        self.slider_rouge.valueChanged.connect(self.update_bleu)
+        self.slider_bleu.valueChanged.connect(self.update_bleu)
         
         # Codes des boutons d'action :
 
@@ -127,6 +130,9 @@ class vue(QMainWindow) :
         self.btn_generate.clicked.connect(self.generate)
         layout_droite.addWidget(self.btn_generate)
 
+        self.btn_save_as = QPushButton("Sauvegarder l'image")
+        self.btn_save_as.clicked.connect(self.save_as)
+        layout_droite.addWidget(self.btn_save_as)
 
         # Label et pixmap pour l'image actuel :
 
@@ -135,10 +141,6 @@ class vue(QMainWindow) :
         layout_centre.addWidget(self.label)
 
         self.setImage()
-
-        self.btn_save_as = QPushButton("Save As")
-        self.btn_save_as.clicked.connect(self.save_as)
-        layout_droite.addWidget(self.btn_save_as)
         
         # Pour afficher l'app :
 
@@ -151,6 +153,7 @@ class vue(QMainWindow) :
 
     def ouvrir_fichier(self):
         self.open_local_fits.emit()
+        self.setImage()
 
     def generate(self):
         self.generate_image_signal.emit()
@@ -175,13 +178,10 @@ class vue(QMainWindow) :
         self.save_as_signal.emit()  
 
     def update_rouge(self) :
-        self.update_rouge_signal.emit(self.slider_rouge.value)
-        self.setImage()
+        self.update_rouge_signal.emit(self.slider_rouge.value())
 
     def update_vert(self) :
-        self.update_vert_signal.emit(self.slider_vert.value)
-        self.setImage()
+        self.update_vert_signal.emit(self.slider_vert.value())
 
     def update_bleu(self) :
-        self.update_bleu_signal.emit(self.slider_bleu.value)
-        self.setImage()
+        self.update_bleu_signal.emit(self.slider_bleu.value())

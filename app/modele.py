@@ -14,6 +14,7 @@ import os
 class modele:
 
     def __init__(self):
+
         self.rouge = np.zeros((100, 100))
         self.vert = np.zeros((100, 100))
         self.bleu = np.zeros((100, 100))
@@ -45,13 +46,18 @@ class modele:
         except Exception as e:
             print(f"Erreur lors du chargement du fichier bleu: {e}")
 
+        self.facteur_rouge : int = 2
+        self.facteur_vert : int = 1
+        self.facteur_bleu : int = 0.5
+        
+        self.generate()
 
     def normalisation(self, data, min=1, max=99):
         min = np.percentile(data, min)
         max = np.percentile(data, max)
         scaled_data = np.clip(data, min, max)
-        return (scaled_data - min) / (max - min + 1e-8)
 
+        return (scaled_data - min) / (max - min + 1e-8)
 
     def resize_images(self):
         if self.rouge.shape != self.vert.shape or self.rouge.shape != self.bleu.shape:
@@ -60,7 +66,6 @@ class modele:
             self.vert = zoom(self.vert, (target_shape[0] / self.vert.shape[0], target_shape[1] / self.vert.shape[1]))
             self.bleu = zoom(self.bleu, (target_shape[0] / self.bleu.shape[0], target_shape[1] / self.bleu.shape[1]))
 
-
     def generate(self):
         self.resize_images()
 
@@ -68,16 +73,16 @@ class modele:
         self.vert = self.normalisation(self.vert)
         self.bleu = self.normalisation(self.bleu)
 
-        self.rouge_calibre = self.rouge  # Obligé de garder des valeurs du début sinon on a des valeurs abérante a force de **
+        # Obligé de garder des valeurs du début sinon on a des valeurs abérante a force de *
+        self.rouge_calibre = self.rouge
         self.vert_calibre = self.vert
         self.bleu_calibre = self.bleu
 
-        self.rouge_calibre = np.clip(self.rouge * 2, 0, 1)
-        self.vert_calibre = np.clip(self.vert * 1, 0, 1)
-        self.bleu_calibre = np.clip(self.bleu * 0.5, 0, 1)
+        self.rouge_calibre = np.clip(self.rouge * self.facteur_rouge, 0, 1)
+        self.vert_calibre = np.clip(self.vert * self.facteur_vert, 0, 1)
+        self.bleu_calibre = np.clip(self.bleu * self.facteur_bleu, 0, 1)
 
         self.compil_image()
-
 
     def compil_image(self) :
         image_final = np.stack((self.rouge_calibre ,self.vert_calibre , self.bleu_calibre) , axis=-1)
@@ -90,21 +95,14 @@ class modele:
 
         plt.savefig(image_path, bbox_inches='tight', pad_inches=0)
 
-
     def updateRouge(self , newvalue) :
-        self.rouge_calibre = np.clip(self.rouge * newvalue, 0, 1)
-        self.compil_image()
-
+        self.facteur_rouge = newvalue
 
     def updateVert(self , newvalue) :
-        self.vert_calibre = np.clip(self.vert * newvalue, 0, 1)
-        self.compil_image()
-
+        self.facteur_vert = newvalue
 
     def updateBleu(self , newvalue) :
-        self.bleu_calibre = np.clip(self.bleu * newvalue, 0, 1)
-        self.compil_image()
-
+        self.facteur_bleu = newvalue
 
     def save_as(self ,path : str) : 
         plt.savefig(path, bbox_inches='tight', pad_inches=0)
@@ -126,24 +124,20 @@ class modele:
             download_directory = "image_test/"
             self.download_fits_files(obs_filtered_by_prefix_sorted, download_directory)
 
-
     def get_filtered_observations(self , ra, dec, radius, satellite_name):
         obs = Observations.query_object(f"{ra} {dec}", radius=radius)
         return obs[obs['obs_collection'] == satellite_name]
-    
 
     def get_most_common_prefix(self , obs_ids):
         prefixes = obs_ids.str.extract('(^[a-zA-Z0-9_]+)', expand=False)
         return prefixes.value_counts().idxmax()
-    
 
     def get_sorted_observations(self , obs_filtered_by_prefix, ra, dec):
         coord = SkyCoord(ra, dec, unit=(u.deg, u.deg), frame='icrs')
         obs_coords = SkyCoord(obs_filtered_by_prefix['s_ra'], obs_filtered_by_prefix['s_dec'], unit=(u.deg, u.deg), frame='icrs')
         distances = coord.separation(obs_coords)
         obs_filtered_by_prefix['distance'] = distances
-        return obs_filtered_by_prefix[np.argsort(obs_filtered_by_prefix['distance'])]
-    
+        return obs_filtered_by_prefix[np.argsort(obs_filtered_by_prefix['distance'])] 
 
     def download_fits_files(self, obs_filtered_by_prefix_sorted, download_directory):
         os.makedirs(download_directory, exist_ok=True)
@@ -189,6 +183,3 @@ class modele:
             QMessageBox.information(None, "Résultat", "Les trois fichiers téléchargés ont la même taille.")
         else:
             QMessageBox.information(None, "Résultat", "Les fichiers téléchargés n'ont pas la même taille.")
-
-
-

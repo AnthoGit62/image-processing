@@ -18,7 +18,6 @@ class controller() :
         self.vue.update_vert_signal.connect(self.fonc_update_vert)
         self.vue.update_bleu_signal.connect(self.fonc_update_bleu)
 
-
     def fonc_open_local_fits(self) :
         try:
             chemin_rouge, _ = QFileDialog.getOpenFileName(self.vue, "Choisir le fichier FITS (Rouge)")
@@ -30,25 +29,21 @@ class controller() :
         except ValueError as e:
             print(f"Erreur lors du chargement des produits: {e}")
 
-
     def fonc_generate(self) :
         self.modele.generate()
-
     
     def fonc_download(self , v_ra , v_dec , v_rad , v_sat) :
         self.modele.download(v_ra , v_dec , v_rad , v_sat)
-
 
     def fonc_save_as(self) :
         dossier = QFileDialog.getExistingDirectory(parent=self.vue, caption="Choisissez un dossier pour sauvegarder l'image",options=QFileDialog.Option.ShowDirsOnly)
         self.modele.save_as(dossier)
 
-
-    def fonc_update_rouge(self , value : int) :
+    def fonc_update_rouge(self, value: int):
         self.modele.updateRouge(value)
 
-    def fonc_update_vert(self , value : int) :
+    def fonc_update_vert(self, value: int):
         self.modele.updateVert(value)
 
-    def fonc_update_bleu(self , value : int) :
+    def fonc_update_bleu(self, value: int):
         self.modele.updateBleu(value)
