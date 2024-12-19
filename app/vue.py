@@ -1,7 +1,7 @@
 # Seys Anthony & Prévost Louis
 
 import os
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QPushButton , QLabel
+from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QPushButton , QLabel, QLineEdit
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt , pyqtSignal
 
@@ -20,6 +20,34 @@ class vue(QMainWindow) :
 
         self.setWindowTitle("Space Viewer")
         layout = QVBoxLayout()
+        
+        # Affichage des champs de téléchargement
+        
+        self.labelRA = QLabel("Coordonnées : RA ")
+        self.textRA = QLineEdit()
+        self.textRA.setPlaceholderText('~ 279.23473479') 
+        self.labelDEC = QLabel("Coordonnées : DEC ")
+        self.textDEC = QLineEdit()
+        self.textDEC.setPlaceholderText('~ 38.78368896') 
+        self.labelRAD = QLabel("Radius : ")
+        self.textRAD = QLineEdit()
+        self.textRAD.setPlaceholderText('~ 0.001') 
+        self.labelSAT = QLabel("Nom du satélite : ")
+        self.textSAT = QLineEdit()
+        self.textSAT.setPlaceholderText('~ JWST') 
+        
+        # Ajout au widget layout
+        
+        layout.addWidget(self.labelRA)
+        layout.addWidget(self.textRA)
+        layout.addWidget(self.labelDEC)
+        layout.addWidget(self.textDEC)
+        layout.addWidget(self.labelRAD)
+        layout.addWidget(self.textRAD)
+        layout.addWidget(self.labelSAT)
+        layout.addWidget(self.textSAT)
+        
+        
 
         # Codes des boutons d'action :
 
