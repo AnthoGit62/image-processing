@@ -1,10 +1,15 @@
 # Seys Anthony & Prévost Louis
 
-from astropy.io import fits
-import numpy as np
+from PyQt6.QtWidgets import QMessageBox
+from astropy.coordinates import SkyCoord
+from astroquery.mast import Observations
 import matplotlib.pyplot as plt
+from scipy.ndimage import zoom
+from astropy import units as u
+from astropy.io import fits
+import pandas as pd
+import numpy as np
 import os
-from scipy.ndimage import zoom  # Pour redimensionner les images
 
 class modele:
 
@@ -12,6 +17,7 @@ class modele:
         self.rouge = None
         self.vert = None
         self.bleu = None
+
 
     def charger_fichier_fits(self, r, v, b):
         try:  # Pour charger le fichier fits rouge
@@ -35,11 +41,13 @@ class modele:
         except Exception as e:
             print(f"Erreur lors du chargement du fichier bleu: {e}")
 
+
     def normalisation(self, data, min=1, max=99):
         min = np.percentile(data, min)
         max = np.percentile(data, max)
         scaled_data = np.clip(data, min, max)
         return (scaled_data - min) / (max - min + 1e-8)
+
 
     def resize_images(self):
         if self.rouge.shape != self.vert.shape or self.rouge.shape != self.bleu.shape:
@@ -49,33 +57,131 @@ class modele:
             self.vert = zoom(self.vert, (target_shape[0] / self.vert.shape[0], target_shape[1] / self.vert.shape[1]))
             self.bleu = zoom(self.bleu, (target_shape[0] / self.bleu.shape[0], target_shape[1] / self.bleu.shape[1]))
 
+
     def generate(self):
         self.resize_images()
 
-        # Normalisation des canaux
         self.rouge = self.normalisation(self.rouge)
         self.vert = self.normalisation(self.vert)
         self.bleu = self.normalisation(self.bleu)
 
-        # Application des filtres
         self.rouge *= 2
         self.vert *= 1
         self.bleu *= 0.5
 
-        # Clipping des valeurs
         self.rouge = np.clip(self.rouge, 0, 1)
         self.vert = np.clip(self.vert, 0, 1)
         self.bleu = np.clip(self.bleu, 0, 1)
 
-        # Empilement des canaux
-        image_final = np.stack((self.rouge, self.vert, self.bleu), axis=-1)
+        self.compil_image()
 
-        # Affichage et sauvegarde de l'image
+
+    def compil_image(self) :
+        image_final = np.stack((self.rouge ,self.vert , self.bleu) , axis=-1)
+
         plt.imshow(image_final)
         plt.axis('off')
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        image_path = os.path.join(script_dir, 'image')
+        image_path = os.path.join(script_dir, 'last_image')
 
-        plt.savefig(image_path)
-        print(f"Image sauvegardée sous {image_path}")
+        plt.savefig(image_path, bbox_inches='tight', pad_inches=0)
+
+
+    def updateRouge(self , newvalue) :
+        self.rouge *= newvalue
+        self.compil_image()
+
+
+    def updateVert(self , newvalue) :
+        self.vert *= newvalue
+        self.compil_image()
+
+
+    def updateBleu(self , newvalue) :
+        self.bleu *= newvalue
+        self.compil_image()
+
+# Code pour le download
+
+    def download(self , v_ra , v_dec , v_rad , v_sat) :
+        ra = v_ra
+        dec = v_dec
+        radius = v_rad
+        satellite_name = v_sat
+        obs_filtered = self.get_filtered_observations(ra, dec, radius, satellite_name)
+        if len(obs_filtered) > 0:
+            obs_ids = pd.Series(obs_filtered['obs_id'], dtype=str)
+            most_common_prefix = self.get_most_common_prefix(obs_ids)
+            mask = obs_ids.str.startswith(most_common_prefix).to_numpy()
+            obs_filtered_by_prefix = obs_filtered[mask]
+            obs_filtered_by_prefix_sorted = self.get_sorted_observations(obs_filtered_by_prefix, ra, dec)
+            download_directory = "image_test/"
+            self.download_fits_files(obs_filtered_by_prefix_sorted, download_directory)
+
+
+    def get_filtered_observations(self , ra, dec, radius, satellite_name):
+        obs = Observations.query_object(f"{ra} {dec}", radius=radius)
+        return obs[obs['obs_collection'] == satellite_name]
+    
+
+    def get_most_common_prefix(self , obs_ids):
+        prefixes = obs_ids.str.extract('(^[a-zA-Z0-9_]+)', expand=False)
+        return prefixes.value_counts().idxmax()
+    
+
+    def get_sorted_observations(self , obs_filtered_by_prefix, ra, dec):
+        coord = SkyCoord(ra, dec, unit=(u.deg, u.deg), frame='icrs')
+        obs_coords = SkyCoord(obs_filtered_by_prefix['s_ra'], obs_filtered_by_prefix['s_dec'], unit=(u.deg, u.deg), frame='icrs')
+        distances = coord.separation(obs_coords)
+        obs_filtered_by_prefix['distance'] = distances
+        return obs_filtered_by_prefix[np.argsort(obs_filtered_by_prefix['distance'])]
+    
+
+    def download_fits_files(self, obs_filtered_by_prefix_sorted, download_directory):
+        os.makedirs(download_directory, exist_ok=True)
+        fits_downloaded = 0
+        first_file = True
+        file_sizes = []
+
+        for obs in obs_filtered_by_prefix_sorted:
+            if fits_downloaded >= 3:
+                break
+            product_list = Observations.get_product_list(obs)
+            science_products = Observations.filter_products(product_list, productType="SCIENCE", extension="fits")
+            if len(science_products) > 0:
+                file_size = science_products[0]['size']
+                file_size_mb = file_size / (1024 * 1024)
+                QMessageBox.information(None, "Taille du fichier", f"Taille du fichier : {file_size_mb:.2f} MB")
+
+                if first_file:
+                    reply = QMessageBox.question(
+                        None,
+                        "Confirmation de téléchargement",
+                        f"Voulez-vous télécharger les fichiers ? Ils pèsent {file_size_mb:.2f} MB.",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    )
+                    if reply == QMessageBox.StandardButton.Yes:
+                        Observations.download_products(science_products[:3], download_dir=download_directory, cache=False)
+                        fits_downloaded += 1
+                        file_sizes.append(file_size)
+                        first_file = False
+                    else:
+                        QMessageBox.warning(
+                            None,
+                            "Téléchargement annulé",
+                            "Téléchargement annulé. Essayez un autre satellite qui aura une image moins lourde."
+                        )
+                        break
+                else:
+                    Observations.download_products(science_products[:3], download_dir=download_directory, cache=False)
+                    fits_downloaded += 1
+                    file_sizes.append(file_size)
+
+        if len(file_sizes) == 3 and len(set(file_sizes)) == 1:
+            QMessageBox.information(None, "Résultat", "Les trois fichiers téléchargés ont la même taille.")
+        else:
+            QMessageBox.information(None, "Résultat", "Les fichiers téléchargés n'ont pas la même taille.")
+
+
+

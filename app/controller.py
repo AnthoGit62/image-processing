@@ -3,9 +3,7 @@
 import vue , modele
 from PyQt6.QtWidgets import QFileDialog
 
-class controller() :
-
-# Constructeur : 
+class controller() : 
     
     def __init__(self) :
         self.modele = modele.modele()
@@ -13,6 +11,7 @@ class controller() :
 
         self.vue.open_local_fits.connect(self.fonc_open_local_fits)
         self.vue.generate_image_signal.connect(self.fonc_generate)
+        self.vue.download_signal.connect(self.fonc_download)
 
 
     def fonc_open_local_fits(self) :
@@ -29,3 +28,7 @@ class controller() :
 
     def fonc_generate(self) :
         self.modele.generate()
+
+    
+    def fonc_download(self , v_ra , v_dec , v_rad , v_sat) :
+        self.modele.download(v_ra , v_dec , v_rad , v_sat)
