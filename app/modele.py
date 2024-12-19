@@ -14,9 +14,13 @@ import os
 class modele:
 
     def __init__(self):
-        self.rouge = None
-        self.vert = None
-        self.bleu = None
+        self.rouge = np.zeros((100, 100))
+        self.vert = np.zeros((100, 100))
+        self.bleu = np.zeros((100, 100))
+
+        self.rouge_calibre = np.zeros_like(self.rouge)
+        self.vert_calibre = np.zeros_like(self.vert)
+        self.bleu_calibre = np.zeros_like(self.bleu)
 
 
     def charger_fichier_fits(self, r, v, b):
@@ -51,7 +55,6 @@ class modele:
 
     def resize_images(self):
         if self.rouge.shape != self.vert.shape or self.rouge.shape != self.bleu.shape:
-            # Redimensionner les canaux pour avoir les mêmes dimensions
             target_shape = min(self.rouge.shape, self.vert.shape, self.bleu.shape)
             self.rouge = zoom(self.rouge, (target_shape[0] / self.rouge.shape[0], target_shape[1] / self.rouge.shape[1]))
             self.vert = zoom(self.vert, (target_shape[0] / self.vert.shape[0], target_shape[1] / self.vert.shape[1]))
@@ -65,19 +68,19 @@ class modele:
         self.vert = self.normalisation(self.vert)
         self.bleu = self.normalisation(self.bleu)
 
-        self.rouge *= 2
-        self.vert *= 1
-        self.bleu *= 0.5
+        self.rouge_calibre = self.rouge  # Obligé de garder des valeurs du début sinon on a des valeurs abérante a force de **
+        self.vert_calibre = self.vert
+        self.bleu_calibre = self.bleu
 
-        self.rouge = np.clip(self.rouge, 0, 1)
-        self.vert = np.clip(self.vert, 0, 1)
-        self.bleu = np.clip(self.bleu, 0, 1)
+        self.rouge_calibre = np.clip(self.rouge * 2, 0, 1)
+        self.vert_calibre = np.clip(self.vert * 1, 0, 1)
+        self.bleu_calibre = np.clip(self.bleu * 0.5, 0, 1)
 
         self.compil_image()
 
 
     def compil_image(self) :
-        image_final = np.stack((self.rouge ,self.vert , self.bleu) , axis=-1)
+        image_final = np.stack((self.rouge_calibre ,self.vert_calibre , self.bleu_calibre) , axis=-1)
 
         plt.imshow(image_final)
         plt.axis('off')
@@ -89,18 +92,22 @@ class modele:
 
 
     def updateRouge(self , newvalue) :
-        self.rouge *= newvalue
+        self.rouge_calibre = np.clip(self.rouge * newvalue, 0, 1)
         self.compil_image()
 
 
     def updateVert(self , newvalue) :
-        self.vert *= newvalue
+        self.vert_calibre = np.clip(self.vert * newvalue, 0, 1)
         self.compil_image()
 
 
     def updateBleu(self , newvalue) :
-        self.bleu *= newvalue
+        self.bleu_calibre = np.clip(self.bleu * newvalue, 0, 1)
         self.compil_image()
+
+
+    def save_as(self ,path : str) : 
+        plt.savefig(path, bbox_inches='tight', pad_inches=0)
 
 # Code pour le download
 

@@ -12,6 +12,11 @@ class controller() :
         self.vue.open_local_fits.connect(self.fonc_open_local_fits)
         self.vue.generate_image_signal.connect(self.fonc_generate)
         self.vue.download_signal.connect(self.fonc_download)
+        self.vue.save_as_signal.connect(self.fonc_save_as)
+
+        self.vue.update_rouge_signal.connect(self.fonc_update_rouge)
+        self.vue.update_vert_signal.connect(self.fonc_update_vert)
+        self.vue.update_bleu_signal.connect(self.fonc_update_bleu)
 
 
     def fonc_open_local_fits(self) :
@@ -32,3 +37,18 @@ class controller() :
     
     def fonc_download(self , v_ra , v_dec , v_rad , v_sat) :
         self.modele.download(v_ra , v_dec , v_rad , v_sat)
+
+
+    def fonc_save_as(self) :
+        dossier = QFileDialog.getExistingDirectory(parent=self.vue, caption="Choisissez un dossier pour sauvegarder l'image",options=QFileDialog.Option.ShowDirsOnly)
+        self.modele.save_as(dossier)
+
+
+    def fonc_update_rouge(self , value : int) :
+        self.modele.updateRouge(value)
+
+    def fonc_update_vert(self , value : int) :
+        self.modele.updateVert(value)
+
+    def fonc_update_bleu(self , value : int) :
+        self.modele.updateBleu(value)

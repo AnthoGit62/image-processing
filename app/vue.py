@@ -1,7 +1,7 @@
 # Seys Anthony & Prévost Louis
 
 import os
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton , QLabel, QLineEdit, QMessageBox
+from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton , QLabel, QLineEdit, QSlider
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt , pyqtSignal
 
@@ -14,6 +14,10 @@ class vue(QMainWindow) :
     download_signal = pyqtSignal(float , float , float , str)
     save_as_signal = pyqtSignal()
 
+    update_rouge_signal = pyqtSignal(int)
+    update_vert_signal = pyqtSignal(int)
+    update_bleu_signal = pyqtSignal(int)
+
     # Constructeur :
 
     def __init__(self):
@@ -21,27 +25,46 @@ class vue(QMainWindow) :
         super().__init__()
 
         self.setWindowTitle("Space Viewer")
+
         layout_gauche = QVBoxLayout()
+        layout_centre = QVBoxLayout()
+        layout_droite = QVBoxLayout()
         layout_main = QHBoxLayout()
         layout_main.addLayout(layout_gauche)
+        layout_main.addLayout(layout_centre)
+        layout_main.addLayout(layout_droite)
+        layout_gauche.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout_droite.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout_centre.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        
+
+        # Label de titre
+
+        self.titreFits = QLabel("Recherche de fichier FITS")
+        self.titreFits.setStyleSheet("font-size: 18px;")
+        layout_gauche.addWidget(self.titreFits)
+        self.titreCouleur = QLabel("Changement de filtre de couleur")
+        self.titreCouleur.setStyleSheet("font-size: 18px;")
+        layout_droite.addWidget(self.titreCouleur)
         
         # Affichage des champs de téléchargement
         
         self.labelRA = QLabel("Coordonnées : RA ")
         self.textRA = QLineEdit()
-        self.textRA.setText('279.23473479')
+        self.textRA.setPlaceholderText('279.23473479')
 
         self.labelDEC = QLabel("Coordonnées : DEC ")
         self.textDEC = QLineEdit()
-        self.textDEC.setText('38.78368896') 
+        self.textDEC.setPlaceholderText('38.78368896') 
 
         self.labelRAD = QLabel("Radius : ")
         self.textRAD = QLineEdit()
-        self.textRAD.setText('0.001') 
+        self.textRAD.setPlaceholderText('0.001') 
 
         self.labelSAT = QLabel("Nom du satélite : ")
         self.textSAT = QLineEdit()
-        self.textSAT.setText('JWST') 
+        self.textSAT.setPlaceholderText('JWST') 
         
         # Ajout au widget layout
         
@@ -53,6 +76,42 @@ class vue(QMainWindow) :
         layout_gauche.addWidget(self.textRAD)
         layout_gauche.addWidget(self.labelSAT)
         layout_gauche.addWidget(self.textSAT)
+
+        # Slider pour changer le rgb :
+
+        self.lbl_slide_rouge = QLabel("Rouge")
+        self.slider_rouge = QSlider(Qt.Orientation.Horizontal, self)
+        self.slider_rouge.setMinimum(0)
+        self.slider_rouge.setMaximum(10)
+        self.slider_rouge.setValue(4)
+        self.slider_rouge.setTickInterval(1)
+        layout_droite.addWidget(self.lbl_slide_rouge)
+        layout_droite.addWidget(self.slider_rouge)
+
+        self.slider_rouge.valueChanged.connect(self.update_rouge)
+
+        self.lbl_slide_vert = QLabel("Vert")
+        self.slider_vert = QSlider(Qt.Orientation.Horizontal, self)
+        self.slider_vert.setMinimum(0)
+        self.slider_vert.setMaximum(10)
+        self.slider_vert.setValue(2)
+        self.slider_vert.setTickInterval(1)
+        layout_droite.addWidget(self.lbl_slide_vert)
+        layout_droite.addWidget(self.slider_vert)
+
+        self.slider_vert.valueChanged.connect(self.update_vert)
+
+
+        self.lbl_slide_bleu = QLabel("Bleu")
+        self.slider_bleu = QSlider(Qt.Orientation.Horizontal, self)
+        self.slider_bleu.setMinimum(0)
+        self.slider_bleu.setMaximum(10)
+        self.slider_bleu.setValue(1)
+        self.slider_bleu.setTickInterval(1)
+        layout_droite.addWidget(self.lbl_slide_bleu)
+        layout_droite.addWidget(self.slider_bleu)
+
+        self.slider_rouge.valueChanged.connect(self.update_bleu)
         
         # Codes des boutons d'action :
 
@@ -66,26 +125,26 @@ class vue(QMainWindow) :
 
         self.btn_generate = QPushButton("Générer l'image")
         self.btn_generate.clicked.connect(self.generate)
-        layout_gauche.addWidget(self.btn_generate)
+        layout_droite.addWidget(self.btn_generate)
 
-        self.btn_save_as = QPushButton("Générer l'image")
-        self.btn_save_as.clicked.connect(self.save_as)
-        layout_gauche.addWidget(self.btn_save_as)
 
         # Label et pixmap pour l'image actuel :
 
         self.label = QLabel(self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
-        layout_main.addWidget(self.label)
+        layout_centre.addWidget(self.label)
 
         self.setImage()
 
+        self.btn_save_as = QPushButton("Save As")
+        self.btn_save_as.clicked.connect(self.save_as)
+        layout_droite.addWidget(self.btn_save_as)
+        
         # Pour afficher l'app :
 
         widget = QWidget()
         widget.setLayout(layout_main)
         self.setCentralWidget(widget)
-        self.setGeometry(100, 100, 800, 600)
         self.show()
 
     # Fonctions :
@@ -115,3 +174,14 @@ class vue(QMainWindow) :
     def save_as(self) : 
         self.save_as_signal.emit()  
 
+    def update_rouge(self) :
+        self.update_rouge_signal.emit(self.slider_rouge.value)
+        self.setImage()
+
+    def update_vert(self) :
+        self.update_vert_signal.emit(self.slider_vert.value)
+        self.setImage()
+
+    def update_bleu(self) :
+        self.update_bleu_signal.emit(self.slider_bleu.value)
+        self.setImage()
