@@ -20,10 +20,10 @@ L'image devrait apparaitre après quelques secondes.
 
 Entrez les paramètres de l'astre que vous souhaitez observer :  </br>
 Coordonnées RA et DEC.  </br>
-Le radius ( la précision doit idéalement se situer a 0,001 ).  </br>
+Le radius ( la précision doit idéalement se situer à 0,001 ).  </br>
 La satellite que vous souhaitez utiliser.  </br>
 
 #### 4 . Modifier la colorisation de l'image :
 
 Modifiez les sliders avec les valeurs souhaitées.  </br>
-Ensuite cliquez sur "Générer l'image" pour recherger l'image avec vos nouveaux paramètres.  </br>
+Ensuite cliquez sur "Générer l'image" pour recharger l'image avec vos nouveaux paramètres.  </br>
